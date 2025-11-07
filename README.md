@@ -1,7 +1,3 @@
-# PERHATIAN: Salin SEMUA teks yang ada di antara tanda kutip rangkap tiga (""") di bawah ini.
-# Teks ini adalah kode sumber (RAW MARKDOWN) untuk file README.md Anda.
-
-readme_markdown_content = """
 # PDF & Image Utility (Client-Side)
 
 Aplikasi web sederhana untuk konversi file PDF ke format gambar (PNG/JPG) dan penambahan *watermark* pada file PDF maupun Gambar (PNG/JPG). Aplikasi ini dirancang untuk berjalan sepenuhnya di sisi klien (*client-side*) menggunakan JavaScript, sehingga tidak memerlukan server backend untuk pemrosesan file.
@@ -59,11 +55,18 @@ Dengan adanya file `serve.json`, `serve` akan secara otomatis menggunakan port y
 
 1.  Buka terminal di dalam direktori yang berisi `tool_konversi_watermark.html` dan `serve.json`.
 
-2.  Jalankan perintah berikut (tanpa argumen port):
+2.  Jalankan perintah berikut:
 
-    ```bash
-    serve .
-    ```
+      * **Foreground (Normal/Memblokir Terminal):**
+        ```bash
+        serve .
+        ```
+      * **Background (Non-memblokir Terminal - Khusus Linux/macOS):**
+        Tambahkan simbol ampersand (`&`) di akhir.
+        ```bash
+        serve . &
+        ```
+        > **Catatan:** Jika dijalankan di background, Anda perlu mencatat *Process ID* (PID) yang muncul untuk menghentikan server nanti (gunakan `kill [PID]`).
 
 Aplikasi akan tersedia di: `http://localhost:8080`.
 
@@ -88,4 +91,3 @@ Karena aplikasi ini *client-side* murni, *deployment* sangat mudah:
       * Klik **Save**.
 
 GitHub Pages akan membutuhkan waktu beberapa menit untuk membangun dan menayangkan situs Anda. Aplikasi Anda akan tersedia di URL seperti: `https://<username>.github.io/pdf-image-utility/tool_konversi_watermark.html`
-"""

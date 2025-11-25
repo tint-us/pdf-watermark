@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tandain — Kasih Watermark Gambar via Browser</title>
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    :root{
+      --bg:#f7f9fc; --ink:#0f172a; --muted:#5b6b8b; --card:#ffffff; --line:#e6eaf2;
+      --primary:#2563eb; --primary-ink:#ffffff; --accent:#0ea5e9; --surface:#eef2f7;
+      --highlight-bg:#ecfccb; --highlight-ink:#365314; --tagline-bg:#fff7ed; --tagline-ink:#7c2d12;
+    }
+    @media (prefers-color-scheme: dark){
+      :root{ --bg:#0b1020; --ink:#e8eeff; --muted:#a1b2d9; --card:#0f152a; --line:#1f2946; --primary:#60a5fa; --primary-ink:#071021; --surface:#0c1328; --highlight-bg:#365314; --highlight-ink:#ecfccb; --tagline-bg:#3b1d0a; --tagline-ink:#fde68a; }
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,Ubuntu,Helvetica,Arial}
+
+    .tagline{background:var(--tagline-bg);color:var(--tagline-ink);padding:8px 14px;text-align:center;font-weight:700}
+
+    header{position:sticky;top:0;z-index:10;background:var(--card);border-bottom:1px solid var(--line)}
+    .bar{max-width:1100px;margin:0 auto;display:flex;gap:12px;align-items:center;padding:10px 14px}
+    .logo{display:flex;align-items:center;gap:8px;font-weight:800}
+    .logo i{width:28px;height:28px;background:linear-gradient(45deg,var(--primary),var(--accent));border-radius:8px;display:inline-block}
+    .bar .actions{margin-left:auto;display:flex;gap:8px}
+    .btn{background:var(--primary);color:var(--primary-ink);border:none;border-radius:10px;padding:9px 12px;cursor:pointer}
+    .btn.alt{background:transparent;border:1px solid var(--line);color:var(--ink)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
+
+    .wrap{max-width:1100px;margin:18px auto;padding:0 14px;display:grid;gap:14px}
+    @media(min-width:880px){.wrap{grid-template-columns:1.1fr .9fr}}
+
+    .panel{background:var(--card);border:1px solid var(--line);border-radius:14px}
+    .panel h2{font-size:16px;margin:0 0 2px}
+    .panel .hd{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+    .panel .bd{padding:14px}
+
+    .drop{border:2px dashed var(--line);border-radius:14px;padding:18px;text-align:center;background:var(--surface)}
+    .drop.drag{border-color:var(--primary)}
+
+    canvas{width:100%;height:auto;background:#00000011;border-radius:12px;display:block}
+
+    .grid{display:grid;gap:12px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    label{font-size:12px;color:var(--muted);display:block;margin-bottom:4px}
+    input[type="text"],select,input[type="number"]{width:100%;padding:10px 12px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px}
+    input[type="color"]{width:100%;height:40px;border:1px solid var(--line);background:var(--card);border-radius:10px}
+    input[type="range"]{width:100%}
+
+    .footer{margin:6px 0 0;color:var(--muted);font-size:12px}
+    .sheet{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 14px;display:flex;gap:8px}
+    @media(min-width:880px){.sheet{display:none}}
+
+    .highlight-box{margin:16px 0;padding:12px 14px;border-radius:12px;background:var(--highlight-bg);color:var(--highlight-ink);font-size:13px;font-weight:500}
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="bar">
+      <div class="logo"><i></i> Tandain - Kasih Tanda di Gambarmu Biar Aman </div>
+      <div class="actions">
+        <button class="btn alt" id="reset">Reset</button>
+        <button class="btn" id="downloadPng" disabled>Download PNG</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- PREVIEW PANEL -->
+    <section class="panel" aria-label="Pratinjau gambar">
+      <div class="hd"><h2>Pratinjau</h2></div>
+      <div class="bd">
+        <div id="drop" class="drop">
+          <p><strong>Tarik & lepaskan</strong> atau klik untuk memilih gambar</p>
+          <input id="file" type="file" accept="image/*" hidden />
+          <button class="btn alt" id="pick">Pilih Gambar</button>
+        </div>
+        <div style="margin-top:12px">
+          <canvas id="canvas" aria-label="Pratinjau watermark"></canvas>
+        </div>
+        <div class="footer" id="meta"></div>
+        <div class="highlight-box">Tidak ada data yang di upload ke server. Semua proses berjalan di browser device kamu</div>
+      </div>
+    </section>
+
+    <!-- CONTROLS PANEL -->
+    <section class="panel" aria-label="Pengaturan watermark">
+      <div class="hd"><h2>Pengaturan</h2></div>
+      <div class="bd">
+        <div class="grid">
+          <div>
+            <label for="text">Teks Watermark</label>
+            <input id="text" type="text" value="" placeholder="Masukkan teks watermark" />
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="opacity">Opacity: <span id="opacityVal">10</span>%</label>
+              <input id="opacity" type="range" min="0" max="100" value="10" />
+            </div>
+            <div>
+              <label for="color">Warna Teks</label>
+              <input id="color" type="color" value="#111111" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="size">Ukuran Font (px)</label>
+              <input id="size" type="number" value="54" min="8" max="1024" />
+            </div>
+            <div>
+              <label for="angle">Rotasi (°)</label>
+              <input id="angle" type="number" value="45" min="-90" max="90" />
+            </div>
+          </div>
+
+          <div class="row">
+            <div>
+              <label for="repeat">Pola</label>
+              <select id="repeat">
+                <option value="tile" selected>Berulang (Tile)</option>
+                <option value="single">Satu teks saja</option>
+              </select>
+            </div>
+            <div>
+              <label for="font">Font</label>
+              <select id="font">
+                <option value="system-ui" selected>System Default</option>
+                <option>Arial</option>
+                <option>Helvetica</option>
+                <option>"Times New Roman"</option>
+                <option>Georgia</option>
+                <option>Verdana</option>
+                <option>Tahoma</option>
+                <option>Roboto</option>
+                <option>"Segoe UI"</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="sheet">
+    <button class="btn alt" id="reset2">Reset</button>
+    <button class="btn" id="downloadJpg" disabled>Download JPG</button>
+  </div>
+
+  <script>
+    const st = { img:null };
+    const cv = document.getElementById('canvas');
+    const ctx = cv.getContext('2d');
+
+    const el = id => document.getElementById(id);
+    const file = el('file'), pick = el('pick'), drop = el('drop');
+    const text = el('text'), opacity = el('opacity'), opacityVal = el('opacityVal');
+    const color = el('color'), size = el('size');
+    const angle = el('angle'), repeat = el('repeat'), font = el('font');
+    const reset = el('reset'), reset2 = el('reset2');
+    const dlPng = el('downloadPng'), dlJpg = el('downloadJpg');
+    const meta = el('meta');
+    const quickH = el('quickH'), quickD = el('quickD');
+
+    function clamp(v,min,max){return Math.max(min,Math.min(max,v));}
+    function loadImage(file){
+      return new Promise((resolve,reject)=>{
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = ()=>{ URL.revokeObjectURL(url); resolve(img) };
+        img.onerror = reject; img.src = url;
+      });
+    }
+
+    function computeBaseSide(textStr, fontPx, angleRad){
+      ctx.save(); ctx.font = fontPx + 'px ' + font.value;
+      const m = ctx.measureText(textStr);
+      const textW = Math.max(1, m.width);
+      const textH = Math.max(1, (m.actualBoundingBoxAscent || fontPx*0.8) + (m.actualBoundingBoxDescent || fontPx*0.2));
+      ctx.restore();
+      const cos = Math.abs(Math.cos(angleRad)), sin = Math.abs(Math.sin(angleRad));
+      const rotW = textW * cos + textH * sin;
+      const rotH = textW * sin + textH * cos;
+      const pad = Math.max(12, Math.round(fontPx * 0.5));
+      return Math.ceil(Math.max(rotW, rotH) + pad);
+    }
+
+    function draw(){
+      if(!st.img){ ctx.clearRect(0,0,cv.width,cv.height); return; }
+      const W = st.img.naturalWidth, H = st.img.naturalHeight;
+      cv.width = W; cv.height = H;
+
+      ctx.clearRect(0,0,W,H);
+      ctx.drawImage(st.img,0,0,W,H);
+
+      const t = text.value || '';
+      if(!t) return;
+      const a = (parseFloat(angle.value)||0)*Math.PI/180;
+      const op = clamp(parseInt(opacity.value||20,10),0,100)/100;
+      const fs = clamp(parseInt(size.value||54,10),8,2048);
+      let col = color.value;
+
+      // Hitung jarak otomatis (supaya font konsisten)
+      const step = computeBaseSide(t, fs, a);
+
+      const tile = document.createElement('canvas');
+      tile.width = tile.height = step;
+      const tctx = tile.getContext('2d');
+      tctx.translate(step/2, step/2);
+      tctx.rotate(a);
+      tctx.fillStyle = col;
+      tctx.globalAlpha = op;
+      tctx.font = fs + 'px ' + font.value;
+      tctx.textAlign = 'center';
+      tctx.textBaseline = 'middle';
+      tctx.fillText(t,0,0);
+
+      if(repeat.value==='tile'){
+        const pat = ctx.createPattern(tile,'repeat');
+        ctx.fillStyle = pat; ctx.fillRect(0,0,W,H);
+      } else {
+        ctx.save(); ctx.translate(W/2,H/2); ctx.rotate(a);
+        ctx.globalAlpha = op; ctx.fillStyle = col;
+        ctx.font = fs + 'px ' + font.value;
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(t,0,0); ctx.restore();
+      }
+    }
+
+    ;['input','change'].forEach(ev=>{
+      [text,opacity,size,angle,color,repeat,font].forEach(x=>x.addEventListener(ev,()=>{
+        if(x===opacity) opacityVal.textContent = opacity.value; draw();
+      }))
+    });
+
+    // Upload handlers
+    pick.onclick = ()=> file.click();
+    file.onchange = async()=>{ if(file.files[0]) await handleFile(file.files[0]); };
+    drop.addEventListener('dragover', e=>{e.preventDefault(); drop.classList.add('drag');});
+    drop.addEventListener('dragleave', ()=> drop.classList.remove('drag'));
+    drop.addEventListener('drop', async e=>{ e.preventDefault(); drop.classList.remove('drag'); const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) await handleFile(f); });
+
+    async function handleFile(f){
+      if(!f.type.startsWith('image/')) return alert('File harus gambar.');
+      const img = await loadImage(f); st.img=img; draw();
+      drop.style.display='none'; dlPng.disabled=dlJpg.disabled=false;
+      meta.textContent=`${img.naturalWidth}×${img.naturalHeight}px — ${(f.size/1024/1024).toFixed(2)} MB`;
+    }
+
+    dlPng.onclick=()=>{if(!st.img)return;const a=document.createElement('a');a.download='watermarked.png';a.href=cv.toDataURL('image/png');a.click();};
+    dlJpg.onclick=()=>{if(!st.img)return;const a=document.createElement('a');a.download='watermarked.jpg';a.href=cv.toDataURL('image/jpeg',0.92);a.click();};
+
+    function doReset(){st.img=null;cv.width=16;cv.height=16;drop.style.display='block';dlPng.disabled=dlJpg.disabled=true;meta.textContent='';text.value='';opacity.value=10;opacityVal.textContent='10';color.value='#111111';size.value=54;angle.value=45;repeat.value='tile';font.value='system-ui';draw();}
+    reset.onclick=doReset;reset2.onclick=doReset;
+    doReset();
+  </script>
+</body>
+</html>
+
